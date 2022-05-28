@@ -24,7 +24,7 @@ func main() {
 
 	go mustListenAndServe(server)
 
-	log.Println("serving!")
+	log.Println("serving!", server.Addr)
 
 	waitShutdown(server)
 
@@ -36,6 +36,7 @@ func createServer() *http.Server {
 
 	i := 1
 
+	// curl -v --cacert ./cert.pem -X GET https://localhost:8080/home
 	r.HandleFunc("/home", func(w http.ResponseWriter, r *http.Request) {
 		response := []byte(fmt.Sprintf("%d", i))
 		if _, err := w.Write(response); err != nil {
@@ -52,12 +53,13 @@ func createServer() *http.Server {
 }
 
 func mustListenAndServe(server *http.Server) {
-	listener, err := net.Listen("tcp", ":8080")
+	listener, err := net.Listen("tcp6", server.Addr)
 	if err != nil {
 		log.Panicln(err)
 	}
 
-	if err := server.Serve(listener); err != nil {
+	// $ go run /usr/lib/golang/src/crypto/tls/generate_cert.go --host localhost
+	if err := server.ServeTLS(listener, "./cert.pem", "./key.pem"); err != nil {
 		if !errors.Is(err, http.ErrServerClosed) {
 			log.Panicln(err)
 		}
